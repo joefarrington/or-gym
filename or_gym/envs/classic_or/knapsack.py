@@ -159,6 +159,11 @@ class KnapsackEnv(gym.Env):
         
         # RlLib requirement: Make sure you either return a uint8/w x h x 3 (RGB) image or handle rendering in a window and then return `True`.
         return True
+    
+    def step_jax_rng(self, key, action):
+        # Added for or-gymnax tests
+        # No random element, so just call step
+        return self.step(action)
 
 class BinaryKnapsackEnv(KnapsackEnv):
     '''
