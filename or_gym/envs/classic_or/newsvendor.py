@@ -9,6 +9,7 @@ import itertools
 import numpy as np
 from collections.abc import Iterable
 from or_gym.utils import assign_env_config
+import jax
 
 class NewsvendorEnv(gym.Env):
     '''
@@ -124,3 +125,41 @@ class NewsvendorEnv(gym.Env):
 
     def step(self, action):
         return self._STEP(action)
+    
+    def step_jax_rng(self, action, key):
+        # Added for or-gymnax tests
+        # Implements step logic, but replaces random generation with jax functions
+        done = False
+        order_qty = max(0, # Ensure order > 0
+            min(action, self.max_inventory - self.state[5:].sum())) # Cap inventory
+        # Altered for or_gymnax tests
+        demand = int(jax.random.poisson(key, self.mu))
+        # End of alteration
+        inventory = self.state[5:]
+        if self.lead_time == 0: # No lead time -> instant fulfillment
+            inv_on_hand = order_qty
+        else:
+            inv_on_hand = inventory[0]
+        sales = min(inv_on_hand, demand) * self.price
+        excess_inventory = max(0, inv_on_hand - demand)
+        short_inventory = max(0, demand - inv_on_hand)
+        purchase_cost = excess_inventory * self.cost * order_qty * \
+            self.gamma ** self.lead_time
+        holding_cost = excess_inventory * self.h
+        lost_sales_penalty = short_inventory * self.k
+        reward = sales - purchase_cost - holding_cost - lost_sales_penalty
+
+        # Update state, note inventory on hand expires at each time step
+        new_inventory = np.zeros(self.lead_time)
+        new_inventory[:-1] += inventory[1:]
+        new_inventory[-1] += order_qty
+        self.state = np.hstack([self.state[:5], new_inventory] , dtype=np.float32)
+
+        self.step_count += 1
+        if self.step_count >= self.step_limit:
+            done = True
+        if isinstance(reward, Iterable):
+            # TODO: Sometimes reward is np.array with one entry
+            reward = sum(reward)
+
+        return self.state, reward, done, {}
