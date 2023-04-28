@@ -126,9 +126,10 @@ class NewsvendorEnv(gym.Env):
     def step(self, action):
         return self._STEP(action)
     
-    def step_jax_rng(self, action, key):
+    def step_jax_rng(self, key, action):
         # Added for or-gymnax tests
-        # Implements step logic, but replaces random generation with jax functions
+        # Implements step logic, but replaces random generation with jax function
+        # where key is a jax.PRNGKey
         done = False
         order_qty = max(0, # Ensure order > 0
             min(action, self.max_inventory - self.state[5:].sum())) # Cap inventory
