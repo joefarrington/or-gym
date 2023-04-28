@@ -163,4 +163,4 @@ class NewsvendorEnv(gym.Env):
             # TODO: Sometimes reward is np.array with one entry
             reward = sum(reward)
 
-        return self.state, reward, done, {sales, purchase_cost, holding_cost, lost_sales_penalty}
+        return self.state, reward, done, {}
