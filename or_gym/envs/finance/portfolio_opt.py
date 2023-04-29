@@ -167,3 +167,8 @@ class PortfolioOptEnv(gym.Env):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def step_jax_rng(self, rng, action):
+        # Added for or-gymnax tests
+        # No random element, so just call step
+        return self.step(action)
