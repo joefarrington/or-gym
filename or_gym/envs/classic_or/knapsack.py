@@ -4,6 +4,7 @@ from gym import spaces, logger
 from gym.utils import seeding
 from or_gym.utils import assign_env_config
 import copy
+import jax
 
 class KnapsackEnv(gym.Env):
     '''
@@ -537,3 +538,51 @@ class OnlineKnapsackEnv(BoundedKnapsackEnv):
         self.step_counter = 0
         self._update_state()
         return self.state
+    
+    def step_jax_rng(self, key, action):
+        # Added for or-gymnax tests
+        if bool(action):
+            # Check that item will fit
+            if self.item_weights[self.current_item] + self.current_weight <= self.max_weight:
+                self.current_weight += self.item_weights[self.current_item]
+                reward = self.item_values[self.current_item]
+                if self.current_weight == self.max_weight:
+                    done = True
+                else:
+                    done = False
+            else:
+                # End if over weight
+                reward = 0
+                done = True
+        else:
+            reward = 0
+            done = False
+        
+        self._update_state_jax_rng(key)
+        self.step_counter += 1
+        if self.step_counter >= self.step_limit:
+            done = True
+            
+        return self.state, reward, done, {}
+
+    def _update_state_jax_rng(self, key):
+        # Added for or-gymnax tests
+        self.current_item = jax.random.choice(key, self.item_numbers, p=self.item_probs)
+        current_item_weight = self.item_weights[self.current_item]
+        state = np.array([
+                self.current_weight,
+                self.current_item,
+                current_item_weight,
+                self.item_values[self.current_item]
+                ],)
+        if self.mask:
+            mask = np.ones(2, dtype=np.uint8)
+            if current_item_weight + self.current_weight > self.max_weight:
+                mask[1] = 0
+            self.state = {
+                'state': state,
+                'avail_actions': np.ones(2, dtype=np.uint8),
+                'action_mask': mask
+            }            
+        else:
+            self.state = state
