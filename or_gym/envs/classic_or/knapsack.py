@@ -409,6 +409,11 @@ class BoundedKnapsackEnv(KnapsackEnv):
         self.current_weight = 0
         self._update_state()
         return self.state
+    
+    def step_jax_rng(self, key, action):
+        # Added for or-gymnax tests
+        # No random element, so just call step
+        return self.step(action)
 
 class OnlineKnapsackEnv(BoundedKnapsackEnv):
     '''
