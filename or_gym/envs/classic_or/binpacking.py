@@ -266,7 +266,8 @@ class BinPackingLW1(BinPackingEnv):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed()
         self.state = self.reset()
 
 class BinPackingPP0(BinPackingEnv):
@@ -280,7 +281,8 @@ class BinPackingPP0(BinPackingEnv):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed()
         self.state = self.reset()
 
 class BinPackingPP1(BinPackingPP0):
@@ -297,7 +299,8 @@ class BinPackingPP1(BinPackingPP0):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed()
         self.state = self.reset()
 
 class BinPackingBW0(BinPackingEnv):
@@ -311,7 +314,8 @@ class BinPackingBW0(BinPackingEnv):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed()
         self.state = self.reset()
 
 class BinPackingBW1(BinPackingBW0):
@@ -328,5 +332,6 @@ class BinPackingBW1(BinPackingBW0):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed()
         self.state = self.reset()
