@@ -225,9 +225,9 @@ class BinPackingEnv(gym.Env):
         
         return self.state, reward, done, {}
 
-    def update_state_jax_rng(self, key):
+    def _update_state_jax_rng(self, key):
         # Added for or-gymnax tests
-        self.item_size = self.get_item_jax_rng(key)
+        self.item_size = self._get_item_jax_rng(key)
         state = np.array(self.bin_levels + [self.item_size], dtype=np.uint32)
         if self.mask:
             state_dict = {
@@ -245,7 +245,7 @@ class BinPackingEnv(gym.Env):
         else:
             return state
         
-    def get_item_jax_rng(self, key):
+    def _get_item_jax_rng(self, key):
         # Added for or-gymnax tests
         return int(jax.random.choice(key, self.item_sizes, p=self.item_probs))
 
