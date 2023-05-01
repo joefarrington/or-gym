@@ -8,6 +8,7 @@ import gym
 from gym import spaces, logger
 from gym.utils import seeding
 from or_gym.utils import assign_env_config
+import jax
 import copy
 
 BIG_NEG_REWARD = -100
@@ -182,6 +183,72 @@ class BinPackingEnv(gym.Env):
 
     def step(self, action):
         return self._STEP(action)
+    
+    def step_jax_rng(self, key, action):
+        # Added for or-gymnax tests
+        done = False
+        if action >= self.bin_capacity:
+            raise ValueError('{} is an invalid action. Must be between {} and {}'.format(
+                action, 0, self.bin_capacity))
+        elif action > (self.bin_capacity - self.item_size):
+            # Bin overflows
+            reward = BIG_NEG_REWARD - self.waste
+            done = True
+        elif action == 0:
+            # Create new bin
+            self.bin_levels[self.item_size] += 1
+            self.waste = self.bin_capacity - self.item_size
+            reward = -1 * self.waste
+        elif self.bin_levels[action] == 0:
+            # Can't insert item into non-existent bin
+            reward = BIG_NEG_REWARD - self.waste
+            done = True
+        else:
+            if action + self.item_size == self.bin_capacity:
+                self.num_full_bins += 1
+            else:
+                self.bin_levels[action + self.item_size] += 1
+            self.waste = -self.item_size
+            reward = -1 * self.waste
+            
+            self.bin_levels[action] -= 1
+        
+        self.total_reward += reward
+        
+        self.step_count += 1 
+        
+        if self.step_count >= self.step_limit:
+            done = True
+        
+        self.state = self._update_state_jax_rng(key)
+        
+        return self.state, reward, done, {}
+
+    def update_state_jax_rng(self, key):
+        # Added for or-gymnax tests
+        self.item_size = self.get_item_jax_rng(key)
+        state = np.array(self.bin_levels + [self.item_size], dtype=np.uint32)
+        if self.mask:
+            state_dict = {
+                'state': state,
+                'avail_actions': np.ones(self.bin_capacity, dtype=np.uint8)}
+            # Mask actions for closed bins
+            mask = np.ones(self.bin_capacity, dtype=np.uint8) * np.array(state[:-1])
+            # Mask actions where packing would exceed capacity
+            overflow = self.bin_capacity - self.item_size
+            mask[overflow+1:] = 0
+            # Ensure open new bin is available
+            mask[0] = 1
+            state_dict['action_mask'] = mask
+            return state_dict
+        else:
+            return state
+        
+    def get_item_jax_rng(self, key):
+        # Added for or-gymnax tests
+        return int(jax.random.choice(key, self.item_sizes, p=self.item_probs))
+
+
 
 class BinPackingLW1(BinPackingEnv):
     '''
