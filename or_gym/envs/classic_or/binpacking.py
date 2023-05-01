@@ -9,6 +9,7 @@ from gym import spaces, logger
 from gym.utils import seeding
 from or_gym.utils import assign_env_config
 import jax
+import jax.numpy as jnp
 import copy
 
 BIG_NEG_REWARD = -100
@@ -247,7 +248,7 @@ class BinPackingEnv(gym.Env):
         
     def _get_item_jax_rng(self, key):
         # Added for or-gymnax tests
-        return int(jax.random.choice(key, self.item_sizes, p=self.item_probs))
+        return int(jax.random.choice(key, jnp.array(self.item_sizes), p=jnp.array(self.item_probs)))
 
 
 
