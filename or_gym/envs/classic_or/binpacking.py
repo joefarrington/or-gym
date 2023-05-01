@@ -68,7 +68,8 @@ class BinPackingEnv(gym.Env):
         assign_env_config(self, kwargs)
         self._build_obs_space()
         self._check_settings()
-        self.seed()
+        # Comment out seed; causes error with new gym API and not used
+        #self.seed() 
         self.state = self.reset()
         
     def _STEP(self, action):
