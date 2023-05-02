@@ -134,6 +134,11 @@ class VMPackingEnv(gym.Env):
 
     def reset(self):
         return self._RESET()
+    
+    def step_jax_rng(self, key, action):
+        # Added for or-gymnax tests
+        # No random element, so just call step
+        return self.step(action)
 
 class TempVMPackingEnv(VMPackingEnv):
     '''
