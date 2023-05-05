@@ -231,7 +231,14 @@ class TempVMPackingEnv(VMPackingEnv):
         self.assignment = {}
         self.demand = self.generate_demand()
         self.durations = generate_durations(self.demand)
-        self.state = (np.zeros((self.n_pms, 3)), self.demand[0])
+        self.state = {
+            "action_mask": np.ones(self.n_pms, dtype=np.uint8),
+            "avail_actions": np.ones(self.n_pms, dtype=np.uint8),
+            "state": np.vstack([
+                np.zeros((self.n_pms, 3)),
+                self.demand[self.current_step]],
+                dtype=np.float32)
+        }
         return self.state
 
     def step(self, action):
