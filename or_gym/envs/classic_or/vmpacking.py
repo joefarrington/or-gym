@@ -205,7 +205,7 @@ class TempVMPackingEnv(VMPackingEnv):
                     pm = self.assignment[process] # Find PM where process was assigned
                     pm_state[pm, self.load_idx] -= self.demand[process][1:]
                     # Deal with rounding
-                    pm_state[pm, self.load_idx] = np.where(pm_state[pm, self.load_idx]<self.tol, 0, pm_state[pm, self.load_idx])
+                    pm_state[pm, self.load_idx] = np.where(pm_state[pm, self.load_idx]<self.tol, 0., pm_state[pm, self.load_idx])
                     # Shut down PM's if state is 0
                     if pm_state[pm, self.load_idx].sum() == 0:
                         pm_state[pm, 0] = 0
@@ -219,7 +219,7 @@ class TempVMPackingEnv(VMPackingEnv):
     def update_state(self, pm_state):
         # Make action selection impossible if the PM would exceed capacity
         step = self.current_step if self.current_step < self.step_limit else self.step_limit-1
-        data_center = np.vstack([pm_state, self.demand[step]])
+        data_center = np.vstack([pm_state, self.demand[step]], dtype=np.float32)
         data_center = np.where(data_center>1,1,data_center) # Fix rounding errors
         self.state["state"] = data_center
         self.state["action_mask"] = np.ones(self.n_pms)
