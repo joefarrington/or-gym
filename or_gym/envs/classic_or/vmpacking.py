@@ -62,7 +62,7 @@ class VMPackingEnv(gym.Env):
         self.reset()
         
     def _RESET(self):
-        self.demand = self.generate_demand()
+        self.demand = self.generate_demand().astype(np.float32)
         self.current_step = 0
         self.state = {
             "action_mask": np.ones(self.n_pms, dtype=np.uint8),
