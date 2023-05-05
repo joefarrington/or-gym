@@ -204,6 +204,8 @@ class TempVMPackingEnv(VMPackingEnv):
                 if self.durations[process] == self.current_step:
                     pm = self.assignment[process] # Find PM where process was assigned
                     pm_state[pm, self.load_idx] -= self.demand[process][1:]
+                    # Deal with rounding
+                    pm_state[pm, self.load_idx] = np.where(pm_state[pm, self.load_idx]<self.tol, 0, pm_state[pm, self.load_idx])
                     # Shut down PM's if state is 0
                     if pm_state[pm, self.load_idx].sum() == 0:
                         pm_state[pm, 0] = 0
