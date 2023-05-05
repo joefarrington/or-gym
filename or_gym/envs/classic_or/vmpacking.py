@@ -177,7 +177,7 @@ class TempVMPackingEnv(VMPackingEnv):
         super().__init__()       
         self.state = self.reset()
 
-    def step(self, action):
+    def _STEP(self, action):
         done = False
         pm_state = self.state["state"][:-1]
         demand = self.state["state"][-1, 1:]
@@ -203,7 +203,7 @@ class TempVMPackingEnv(VMPackingEnv):
                 # Remove process from PM
                 if self.durations[process] == self.current_step:
                     pm = self.assignment[process] # Find PM where process was assigned
-                    pm_state[pm, self.load_idx] -= self.demand[process]
+                    pm_state[pm, self.load_idx] -= self.demand[process][1:]
                     # Shut down PM's if state is 0
                     if pm_state[pm, self.load_idx].sum() == 0:
                         pm_state[pm, 0] = 0
