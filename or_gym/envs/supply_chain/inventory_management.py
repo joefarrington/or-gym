@@ -10,6 +10,7 @@ import numpy as np
 from scipy.stats import *
 from or_gym.utils import assign_env_config
 from collections import deque
+import numpyro.distributions as dist
 
 class InvManagementMasterEnv(gym.Env):
     '''
@@ -390,6 +391,102 @@ class InvManagementMasterEnv(gym.Env):
 
     def reset(self):
         return self._RESET()
+    
+    def step_jax_rng(self, rng, action):
+        # Added for or-gymnax tests
+        # TODO: Enable different distributions, this currently just uses Poisson
+        R = np.maximum(action, 0).astype(int)
+
+        # get inventory at hand and pipeline inventory at beginning of the period
+        n = self.period
+        L = self.lead_time
+        I = self.I[n,:].copy() # inventory at start of period n
+        T = self.T[n,:].copy() # pipeline inventory at start of period n
+        m = self.num_stages # number of stages
+        
+        # get production capacities
+        c = self.supply_capacity # capacity
+        self.action_log[n] = R.copy()
+        # available inventory at the m+1 stage (note: last stage has unlimited supply)
+        Im1 = np.append(I[1:], np.Inf) 
+        
+        # place replenishment order
+        if n>=1: # add backlogged replenishment orders to current request
+            R = R + self.B[n-1,1:]
+        Rcopy = R.copy() # copy original replenishment quantity
+        R[R>=c] = c[R>=c] # enforce capacity constraint
+        R[R>=Im1] = Im1[R>=Im1] # enforce available inventory constraint
+        self.R[n,:] = R # store R[n]
+        
+        # receive inventory replenishment placed L periods ago
+        RnL = np.zeros(m-1) # initialize
+        for i in range(m-1):
+            if n - L[i] >= 0:
+                RnL[i] = self.R[n-L[i],i].copy() # replenishment placed at the end of period n-L-1
+                I[i] = I[i] + RnL[i]
+            
+        # demand is realized - Poisson only for current testing purposes
+        D0 = dist.Poisson(self.dist_param['mu']).sample(rng)
+        D = D0 # demand
+        self.D[n] = D0 # store D[n]
+        
+        # add previous backlog to demand
+        if n >= 1:
+            D = D0 + self.B[n-1,0].copy() # add backlogs to demand
+        
+        # units sold
+        S0 = min(I[0],D) # at retailer
+        S = np.append(S0,R) # at each stage
+        self.S[n,:] = S # store S[n]
+        
+        # update inventory on hand and pipeline inventory
+        I = I - S[:-1] # updated inventory at all stages (exclude last stage)
+        T = T - RnL + R # updated pipeline inventory at all stages (exclude last one)
+        self.I[n+1,:] = I # store inventory available at start of period n + 1 (exclude last stage)
+        self.T[n+1,:] = T # store pipeline inventory at start of period n + 1
+        
+        # unfulfilled orders
+        U = np.append(D, Rcopy) - S # unfulfilled demand and replenishment orders
+        
+        # backlog and lost sales
+        if self.backlog:
+            B = U
+            LS = np.zeros(m)
+        else:
+            LS = U # lost sales
+            B = np.zeros(m)
+        self.B[n,:] = B # store B[n]
+        self.LS[n,:] = LS # store LS[n]
+
+        # calculate profit
+        p = self.unit_price 
+        r = self.unit_cost 
+        k = self.demand_cost
+        h = self.holding_cost
+        a = self.discount
+        II = np.append(I,0) # augment inventory so that last has no onsite inventory
+        RR = np.append(R,S[-1]) # augment replenishment orders to include production cost at last stage
+        P = a**n*np.sum(p*S - (r*RR + k*U + h*II)) # discounted profit in period n
+        # P = a**n*np.sum(p*S - (r*RR + k*U + h*I))
+        self.P[n] = P # store P
+        
+        # update period
+        self.period += 1  
+        
+        # update stae
+        self._update_state()
+        
+        # set reward (profit from current timestep)
+        reward = P 
+        
+        # determine if simulation should terminate
+        if self.period >= self.num_periods:
+            done = True
+        else:
+            done = False
+            
+        return self.state, reward, done, {}
+
         
 class InvManagementBacklogEnv(InvManagementMasterEnv):
     def __init__(self, *args, **kwargs):
